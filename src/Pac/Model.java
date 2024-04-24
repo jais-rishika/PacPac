@@ -6,25 +6,23 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
+import java.util.TimerTask;
 
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public class Model extends JPanel{
-	
 	//initializing the required variables
 	
 	private Dimension d; //height and width of the playing field
 	private final Font smallFont=new Font("Arial",Font.BOLD,14); //setting font for the text to be displayed
 	private boolean inGame= false; //to check if game is ongoing or not
 	private boolean dying= false; //check to know if Pac is Alive
+	private boolean next=false;
+	private int lvl;
 	private int bestScore=0;
 	private int currentScore=0;
 	
@@ -47,7 +45,7 @@ public class Model extends JPanel{
 	private int req_dx, req_dy; // are determined in TAdapter in our class(keyboard)
 	
 	private final int validSpeeds[]= {1,2,3,4,6,8}; //an array if valid speed
-	private final int maxSpeed=6;
+	private final int maxSpeed=5;
 	
 	private int currentSpeed=1;
 	private short[] screenData;// will later take data from lvlData to redraw the game
@@ -98,8 +96,8 @@ public class Model extends JPanel{
         heart = new ImageIcon(Model.class.getResource("assets/heart.png")).getImage();
 	}
 	
+	
 	private void initVariables() {
-
         screenData = new short[N_BLOCK * N_BLOCK];
         d = new Dimension(400, 400);
         ghost_x = new int[MAX_ENEMIES];
@@ -115,9 +113,7 @@ public class Model extends JPanel{
     }
 	
 	private void playGame(Graphics2D g2d) {
-
         if (dying) {
-
             death();
 
         } else {
@@ -143,9 +139,8 @@ public class Model extends JPanel{
         g.setColor(new Color(5, 181, 79));
         String s = "Score: " ;
         String b="Best Score: ";
-        String c="CScore: ";
         g.drawString(b+ bestScore, SCREEN_SIZE / 2 - 60, SCREEN_SIZE + 16);
-        g.drawString(s +score, SCREEN_SIZE / 2 + 110, SCREEN_SIZE + 16);
+        g.drawString(s +score, SCREEN_SIZE / 2 + 0, SCREEN_SIZE + 16);
 
         for (int i = 0; i < lives; i++) {
             g.drawImage(heart, i * 28 + 8, SCREEN_SIZE + 1, this);
@@ -159,10 +154,13 @@ public class Model extends JPanel{
 
         if(currentScore==194) {
         	finished=true;
+        	next=true;
+        	lvl++;
         }
         else
         {
         	finished=false;
+        	next=false;
         }
 
         if (finished) {
@@ -178,48 +176,18 @@ public class Model extends JPanel{
                 currentSpeed++;
             }
 
-            else if(N_ENEMIES < MAX_ENEMIES && currentSpeed < maxSpeed) {
-            	inGame=false;
-            	initGame();
-            	
+            else if(lvl==6) {
+            	next=false;      	
             }
             initLevel();
         }
     }
-		
-//		if(finished) {
-//			String nextLevelMessage = "Moving to the next level";
-//			String finalMessage = "Congratulation!! you have reached the end";
-////			printCenter(g,nextLevelMessage);
-//	        try {
-//	            Thread.sleep(1000); // pause for 3 seconds
-//	        } catch (InterruptedException e) {
-//	            e.printStackTrace();
-//	        }
-//			score+=50;
-//			currentScore=0; //resetting this score when moving to the next level
-//			if(N_ENEMIES < MAX_ENEMIES && currentSpeed < maxSpeed) {
-//				N_ENEMIES++;
-//				currentSpeed++;
-//			}
-//			else
-//			{
-//				inGame=false;
-////				printCenter(g,finalMessage);
-//				initGame();
-//				return;
-//			}
-//			initLevel();
-//			
-//		}
-//		
-//	}
 	
 	private void death() {
 		lives--;
 		if(lives==0) {
+			dying=true;
 			if(score>bestScore) {
-				
 				bestScore=score;
 			}
 			inGame=false;
@@ -396,6 +364,8 @@ public class Model extends JPanel{
 	private void initGame(){
 		lives=3; //starting value of life
 		score=0; //initial score
+		currentScore=0;
+		lvl=1; //initial lvl
 		initLevel();
 		N_ENEMIES=6;
 		currentSpeed=3;
@@ -438,6 +408,30 @@ public class Model extends JPanel{
 			 req_dy=0;
 			 dying=false;
 		}
+	
+		void gameOver (Graphics2D g2d) {
+			g2d.setFont(smallFont);
+			g2d.setColor(Color.yellow);
+			 if (next) {
+		            String s = "Next level";
+		            inGame=false;
+		            g2d.drawString(s, (SCREEN_SIZE) / 4, 20);
+		      
+		            inGame=true;
+		            System.out.println(lvl);
+		            initLevel();
+		             
+		      }
+			 else if(lvl==6) {
+				 	if(score>bestScore) {
+				 		bestScore=score;
+				 	}
+				 	String s = "Congrats you have reached the end";
+		            g2d.drawString(s, (SCREEN_SIZE)/8, 30);
+	            	inGame=false;
+			 }
+		}
+		
 		
 	
 	//this function is use to calls other function and display the graphics
@@ -448,14 +442,13 @@ public class Model extends JPanel{
 		g2d.fillRect(0, 0, d.width, d.height);
 		drawMaze(g2d);
 		drawScore(g2d);
-		
+		gameOver(g2d);
 		if(inGame) {
 			playGame(g2d);
 		}
 		else {
 			showIntroScreen(g2d);
 		}
-		Toolkit.getDefaultToolkit().sync();
 		g2d.dispose();
 	}
 	
